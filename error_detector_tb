@@ -1,0 +1,240 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 04/30/2026 07:50:16 PM
+// Design Name: 
+// Module Name: error_detector_tb
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+
+module error_detector_tb;
+
+    // Inputs
+    reg clk;
+    reg rst_n;
+
+    reg bit_err;
+    reg stuff_err;
+    reg crc_err;
+    reg form_err;
+    reg ack_err;
+    reg arb_lost;
+
+    reg tx_done;
+    reg rx_ready;
+
+    // Outputs
+    wire [7:0] tec;
+    wire [7:0] rec;
+    wire [4:0] err_code;
+    wire bus_off;
+    wire err_passive;
+    wire err_active;
+
+    // DUT Instantiation
+    error_detector uut (
+        .clk(clk),
+        .rst_n(rst_n),
+        .bit_err(bit_err),
+        .stuff_err(stuff_err),
+        .crc_err(crc_err),
+        .form_err(form_err),
+        .ack_err(ack_err),
+        .arb_lost(arb_lost),
+        .tx_done(tx_done),
+        .rx_ready(rx_ready),
+        .tec(tec),
+        .rec(rec),
+        .err_code(err_code),
+        .bus_off(bus_off),
+        .err_passive(err_passive),
+        .err_active(err_active)
+    );
+
+    // Clock generation (10ns period)
+    always #5 clk = ~clk;
+
+    integer i;
+
+    initial begin
+
+        //-----------------------------------
+        // Initial Values
+        //-----------------------------------
+        clk       = 0;
+        rst_n     = 0;
+
+        bit_err   = 0;
+        stuff_err = 0;
+        crc_err   = 0;
+        form_err  = 0;
+        ack_err   = 0;
+        arb_lost  = 0;
+
+        tx_done   = 0;
+        rx_ready  = 0;
+
+        //-----------------------------------
+        // TESTCASE 1 : Reset Verification
+        //-----------------------------------
+        #20;
+        $display("TESTCASE 1 : Reset Verification");
+        $display("TEC=%d REC=%d BUS_OFF=%b", tec, rec, bus_off);
+
+        //-----------------------------------
+        // Release Reset
+        //-----------------------------------
+        rst_n = 1;
+        #10;
+
+        //-----------------------------------
+        // TESTCASE 2 : Bit Error
+        //-----------------------------------
+        $display("TESTCASE 2 : Bit Error");
+
+        bit_err = 1;
+        #10;
+        bit_err = 0;
+
+        #10;
+        $display("TEC=%d ERR_CODE=%d", tec, err_code);
+
+        //-----------------------------------
+        // TESTCASE 3 : ACK Error
+        //-----------------------------------
+        $display("TESTCASE 3 : ACK Error");
+
+        ack_err = 1;
+        #10;
+        ack_err = 0;
+
+        #10;
+        $display("TEC=%d ERR_CODE=%d", tec, err_code);
+
+        //-----------------------------------
+        // TESTCASE 4 : Stuff Error
+        //-----------------------------------
+        $display("TESTCASE 4 : Stuff Error");
+
+        stuff_err = 1;
+        #10;
+        stuff_err = 0;
+
+        #10;
+        $display("REC=%d ERR_CODE=%d", rec, err_code);
+
+        //-----------------------------------
+        // TESTCASE 5 : CRC Error
+        //-----------------------------------
+        $display("TESTCASE 5 : CRC Error");
+
+        crc_err = 1;
+        #10;
+        crc_err = 0;
+
+        #10;
+        $display("REC=%d ERR_CODE=%d", rec, err_code);
+
+        //-----------------------------------
+        // TESTCASE 6 : Form Error
+        //-----------------------------------
+        $display("TESTCASE 6 : Form Error");
+
+        form_err = 1;
+        #10;
+        form_err = 0;
+
+        #10;
+        $display("REC=%d ERR_CODE=%d", rec, err_code);
+
+        //-----------------------------------
+        // TESTCASE 7 : Successful TX
+        //-----------------------------------
+        $display("TESTCASE 7 : Successful TX");
+
+        tx_done = 1;
+        #10;
+        tx_done = 0;
+
+        #10;
+        $display("TEC=%d", tec);
+
+        //-----------------------------------
+        // TESTCASE 8 : Successful RX
+        //-----------------------------------
+        $display("TESTCASE 8 : Successful RX");
+
+        rx_ready = 1;
+        #10;
+        rx_ready = 0;
+
+        #10;
+        $display("REC=%d", rec);
+
+        //-----------------------------------
+        // TESTCASE 9 : Arbitration Lost Case
+        //-----------------------------------
+        $display("TESTCASE 9 : Bit Error with Arbitration Lost");
+
+        bit_err  = 1;
+        arb_lost = 1;
+
+        #10;
+        bit_err  = 0;
+        arb_lost = 0;
+
+        #10;
+        $display("TEC should not increase much = %d", tec);
+
+        //-----------------------------------
+        // TESTCASE 10 : Error Passive
+        //-----------------------------------
+        $display("TESTCASE 10 : Error Passive");
+
+        for (i = 0; i < 14; i = i + 1) begin
+            ack_err = 1;
+            #10;
+            ack_err = 0;
+            #10;
+        end
+
+        $display("TEC=%d ERR_PASSIVE=%b", tec, err_passive);
+
+        //-----------------------------------
+        // TESTCASE 11 : Bus-Off
+        //-----------------------------------
+        $display("TESTCASE 11 : Bus-Off");
+
+        for (i = 0; i < 20; i = i + 1) begin
+            ack_err = 1;
+            #10;
+            ack_err = 0;
+            #10;
+        end
+
+        $display("TEC=%d BUS_OFF=%b", tec, bus_off);
+
+        //-----------------------------------
+        // Finish Simulation
+        //-----------------------------------
+        #20;
+        $display("Simulation Completed");
+        $stop;
+
+    end
+
+endmodule
