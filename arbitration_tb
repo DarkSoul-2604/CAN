@@ -1,0 +1,179 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 04/30/2026 11:16:23 AM
+// Design Name: 
+// Module Name: arbitration_tb
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+
+module arbitration_tb;
+
+    // Inputs
+    reg clk;
+    reg rst_n;
+    reg bit_tick;
+    reg tx_active;
+    reg can_tx;
+    reg can_rx;
+
+    // Output
+    wire arb_lost;
+
+    // DUT Instantiation
+    arbitration uut (
+        .clk(clk),
+        .rst_n(rst_n),
+        .bit_tick(bit_tick),
+        .tx_active(tx_active),
+        .can_tx(can_tx),
+        .can_rx(can_rx),
+        .arb_lost(arb_lost)
+    );
+
+    // Clock generation (10ns period)
+    always #5 clk = ~clk;
+
+    initial begin
+
+        // Initial values
+        clk       = 0;
+        rst_n     = 0;
+        bit_tick  = 0;
+        tx_active = 0;
+        can_tx    = 1;
+        can_rx    = 1;
+
+        //-----------------------------------
+        // TESTCASE 1 : Reset Verification
+        //-----------------------------------
+        #20;
+        $display("TESTCASE 1 : Reset Verification");
+        $display("arb_lost = %b", arb_lost);
+
+        //-----------------------------------
+        // Release Reset
+        //-----------------------------------
+        rst_n = 1;
+        #10;
+
+        //-----------------------------------
+        // TESTCASE 2 : No Arbitration Loss
+        // TX = 0, RX = 0
+        //-----------------------------------
+        $display("TESTCASE 2 : No Arbitration Loss (TX=0, RX=0)");
+
+        bit_tick  = 1;
+        tx_active = 1;
+        can_tx    = 0;
+        can_rx    = 0;
+
+        #10;
+        bit_tick = 0;
+
+        #10;
+        $display("arb_lost = %b", arb_lost);
+
+        //-----------------------------------
+        // TESTCASE 3 : No Arbitration Loss
+        // TX = 1, RX = 1
+        //-----------------------------------
+        $display("TESTCASE 3 : No Arbitration Loss (TX=1, RX=1)");
+
+        bit_tick  = 1;
+        tx_active = 1;
+        can_tx    = 1;
+        can_rx    = 1;
+
+        #10;
+        bit_tick = 0;
+
+        #10;
+        $display("arb_lost = %b", arb_lost);
+
+        //-----------------------------------
+        // TESTCASE 4 : Arbitration Lost
+        // TX = 1, RX = 0
+        //-----------------------------------
+        $display("TESTCASE 4 : Arbitration Lost (TX=1, RX=0)");
+
+        bit_tick  = 1;
+        tx_active = 1;
+        can_tx    = 1;
+        can_rx    = 0;
+
+        #10;
+        bit_tick = 0;
+
+        #10;
+        $display("arb_lost = %b", arb_lost);
+
+        //-----------------------------------
+        // TESTCASE 5 : bit_tick = 0
+        //-----------------------------------
+        $display("TESTCASE 5 : bit_tick = 0");
+
+        bit_tick  = 0;
+        tx_active = 1;
+        can_tx    = 1;
+        can_rx    = 0;
+
+        #20;
+        $display("arb_lost = %b", arb_lost);
+
+        //-----------------------------------
+        // TESTCASE 6 : tx_active = 0
+        //-----------------------------------
+        $display("TESTCASE 6 : tx_active = 0");
+
+        bit_tick  = 1;
+        tx_active = 0;
+        can_tx    = 1;
+        can_rx    = 0;
+
+        #10;
+        bit_tick = 0;
+
+        #10;
+        $display("arb_lost = %b", arb_lost);
+
+        //-----------------------------------
+        // TESTCASE 7 : Pulse Verification
+        //-----------------------------------
+        $display("TESTCASE 7 : Pulse Verification");
+
+        bit_tick  = 1;
+        tx_active = 1;
+        can_tx    = 1;
+        can_rx    = 0;
+
+        #10;
+        bit_tick = 0;
+
+        #20;
+        $display("arb_lost should return to 0 = %b", arb_lost);
+
+        //-----------------------------------
+        // Finish Simulation
+        //-----------------------------------
+        #20;
+        $display("Simulation Completed");
+        $stop;
+
+    end
+
+endmodule
