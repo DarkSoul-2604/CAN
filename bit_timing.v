@@ -19,31 +19,32 @@ reg [5:0] prescaler_cnt;
 reg       can_rx_d;
 reg [5:0] tq_cnt;
 
-wire edge_detected = can_rx ^ can_rx_d;
-wire [5:0] bit_time = 6'd1 + {2'd0,tseg1} + {3'd0,tseg2}; // Sync + TSEG1 + TSEG2
+// CAN re-sync on recessive->dominant edge only
+wire edge_detected = can_rx_d & ~can_rx;
+wire [5:0] bit_time = 6'd1 + {2'd0, tseg1} + {3'd0, tseg2}; // Sync + TSEG1 + TSEG2
 
-// Prescaler: generate tq_tick
+// Prescaler: generate tq_tick when counter reaches BRP (not BRP-1)
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         prescaler_cnt <= 6'd0;
         tq_tick       <= 1'b0;
     end else begin
-        if (brp == 6'd0 || prescaler_cnt == (brp - 6'd1)) begin         ///////////
+        tq_tick <= 1'b0;
+        if (prescaler_cnt == brp) begin
             prescaler_cnt <= 6'd0;
             tq_tick       <= 1'b1;
         end else begin
             prescaler_cnt <= prescaler_cnt + 6'd1;
-            tq_tick       <= 1'b0;
         end
     end
 end
 
-// Edge detect
 always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) can_rx_d <= 1'b1;
-    else        can_rx_d <= can_rx;
+    if (!rst_n)
+        can_rx_d <= 1'b1;
+    else
+        can_rx_d <= can_rx;
 end
-
 
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -55,32 +56,28 @@ always @(posedge clk or negedge rst_n) begin
         bit_tick    <= 1'b0;
 
         if (tq_tick) begin
-            // sample point at end of TSEG1
-            if (tq_cnt == {2'd0,tseg1})
+            // sample point at end of TSEG1 (1 + TSEG1 - 1)
+            if (tq_cnt == {2'd0, tseg1})
                 sample_tick <= 1'b1;
 
-            // hard sync only at start of bit (tq_cnt==0)
-            if (edge_detected && tq_cnt == 6'd0) begin
+            // hard sync at start of bit
+            if (edge_detected && (tq_cnt == 6'd0)) begin
                 tq_cnt <= 6'd0;
             end
             // resync during bit
             else if (edge_detected) begin
-                if (tq_cnt < {2'd0,tseg1}) begin
-                    // (late edge) - lengthen by up to SJW
-                    if ((({2'd0,tseg1} - tq_cnt) > {4'd0,sjw}))
-                        tq_cnt <= tq_cnt + {4'd0,sjw};
+                if (tq_cnt < {2'd0, tseg1}) begin
+                    if (({2'd0, tseg1} - tq_cnt) > {4'd0, sjw})
+                        tq_cnt <= tq_cnt + {4'd0, sjw};
                     else
-                        tq_cnt <= {2'd0,tseg1};
+                        tq_cnt <= {2'd0, tseg1};
                 end else begin
-                    // (early edge) - shorten by up to SJW
-                    if (((tq_cnt - {2'd0,tseg1}) > {4'd0,sjw}))
-                        tq_cnt <= tq_cnt - {4'd0,sjw};
+                    if ((tq_cnt - {2'd0, tseg1}) > {4'd0, sjw})
+                        tq_cnt <= tq_cnt - {4'd0, sjw};
                     else
-                        tq_cnt <= {2'd0,tseg1};
+                        tq_cnt <= {2'd0, tseg1};
                 end
-            end
-          
-            else begin
+            end else begin
                 if (tq_cnt == (bit_time - 6'd1)) begin
                     tq_cnt   <= 6'd0;
                     bit_tick <= 1'b1;
