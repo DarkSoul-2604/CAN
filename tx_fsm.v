@@ -148,7 +148,6 @@ module tx_fsm (
                     CRC: begin
                         crc_en <= 1'b0;
                         if (bit_cnt == 5'd0) begin
-                            crc_shift <= crc_computed;
                             can_tx    <= crc_computed[14];
                             crc_shift <= {crc_computed[13:0], 1'b0};
                         end else begin
