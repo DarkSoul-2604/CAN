@@ -75,6 +75,9 @@ module can_apb_slave (
                     if (reg_addr_valid) begin
                         reg_read_en <= 1'b1;
                         PRDATA      <= reg_rdata;
+                    end else if (cmd_addr_valid) begin
+                        // command port is write-oriented; reads return zero
+                        PRDATA <= 16'h0000;
                     end else begin
                         PSLVERR <= 1'b1;
                     end
