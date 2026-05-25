@@ -25,11 +25,13 @@ module can_apb_slave (
     output reg         rx_release
 );
 
-    wire apb_setup  = PSEL && !PENABLE;
-    wire apb_access = PSEL &&  PENABLE;
+    wire apb_access = PSEL && PENABLE;
 
-    
-    wire addr_valid = (PADDR <= 8'h2A) && (PADDR[0] == 1'b0);
+    // Register map is even addresses [0x00..0x2A].
+    // Command register at 0x01 is a valid APB write-only command port.
+    wire reg_addr_valid = (PADDR <= 8'h2A) && (PADDR[0] == 1'b0);
+    wire cmd_addr_valid = (PADDR == 8'h01);
+    wire addr_valid     = reg_addr_valid || cmd_addr_valid;
 
     always @(posedge PCLK or negedge PRESETn) begin
         if (!PRESETn) begin
@@ -46,18 +48,14 @@ module can_apb_slave (
             tx_abort     <= 1'b0;
             rx_release   <= 1'b0;
         end else begin
-            // defaults each cycle
             PREADY       <= 1'b0;
             PSLVERR      <= 1'b0;
-
             reg_write_en <= 1'b0;
             reg_read_en  <= 1'b0;
-
             tx_req       <= 1'b0;
             tx_abort     <= 1'b0;
             rx_release   <= 1'b0;
 
-            
             if (apb_access) begin
                 PREADY   <= 1'b1;
                 reg_addr <= PADDR;
@@ -65,18 +63,24 @@ module can_apb_slave (
                 if (!addr_valid) begin
                     PSLVERR <= 1'b1;
                 end else if (PWRITE) begin
-                    reg_wdata    <= PWDATA;
-                    reg_write_en <= 1'b1;
-
-                   
-                    if (PADDR == 8'h01) begin
+                    if (cmd_addr_valid) begin
                         tx_req     <= PWDATA[0];
                         tx_abort   <= PWDATA[1];
                         rx_release <= PWDATA[2];
+                    end else begin
+                        reg_wdata    <= PWDATA;
+                        reg_write_en <= 1'b1;
                     end
                 end else begin
-                    reg_read_en <= 1'b1;
-                    PRDATA      <= reg_rdata;
+                    if (reg_addr_valid) begin
+                        reg_read_en <= 1'b1;
+                        PRDATA      <= reg_rdata;
+                    end else if (cmd_addr_valid) begin
+                        // command port is write-oriented; reads return zero
+                        PRDATA <= 16'h0000;
+                    end else begin
+                        PSLVERR <= 1'b1;
+                    end
                 end
             end
         end
