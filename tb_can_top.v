@@ -107,7 +107,7 @@ module tb_can_top;
                     tx_state_seen[dut.u_tx_fsm.state] <= 1'b1;
 
                 if ((dut.u_tx_fsm.state != TX_IDLE) && (tx_cap_len < 256)) begin
-                    tx_frame_bits[tx_cap_len] <= can_rx;
+                    tx_frame_bits[tx_cap_len] <= can_tx;
                     tx_cap_len <= tx_cap_len + 1;
                 end
 
