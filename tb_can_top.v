@@ -213,7 +213,8 @@ module tb_can_top;
         PRESETn = 1'b1;
         repeat (2) @(posedge PCLK);
 
-        // Fast bit timing setup for simulation: BRP=0, TSEG1=2, TSEG2=1, SJW=1.
+        // Fast bit timing setup for simulation:
+        // BTR[5:0]=BRP=0, BTR[9:6]=TSEG1=2, BTR[12:10]=TSEG2=1, BTR[15:13]=SJW=1.
         apb_write(8'h04, 16'h2480);
         // Accept all IDs for replay receive check.
         apb_write(8'h06, 16'h0000);
