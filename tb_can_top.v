@@ -222,6 +222,8 @@ module tb_can_top;
         apb_write(8'h00, 16'h0000);
 
         // TX frame setup: ID=0x7FF, DLC=2, DATA[1:0]=16'hF0F0.
+        // ID=0x7FF creates a long run of dominant/recessive levels, so at least
+        // one stuffing event is expected and checked in this test.
         apb_write(8'h0A, 16'h07FF);
         apb_write(8'h0C, 16'h0002);
         apb_write(8'h0E, 16'hF0F0);
