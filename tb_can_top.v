@@ -222,8 +222,8 @@ module tb_can_top;
         apb_write(8'h00, 16'h0000);
 
         // TX frame setup: ID=0x7FF, DLC=2, DATA[1:0]=16'hF0F0.
-        // ID=0x7FF creates a long run of dominant/recessive levels, so at least
-        // one stuffing event is expected and checked in this test.
+        // The long run of recessive bits in arbitration/control around ID=0x7FF
+        // guarantees stuffing activity, which is explicitly checked below.
         apb_write(8'h0A, 16'h07FF);
         apb_write(8'h0C, 16'h0002);
         apb_write(8'h0E, 16'hF0F0);
@@ -311,6 +311,8 @@ module tb_can_top;
         apb_write(8'h00, 16'h0004); // listen_only_mode=1
         apb_write(8'h01, 16'h0004); // rx_release
 
+        // Replay the full captured frame from SOF through intermission to verify
+        // complete end-to-end RX handling in listen-only mode.
         for (i = 0; i < tx_cap_len; i = i + 1)
             rx_send_bit(tx_frame_bits[i]);
 
